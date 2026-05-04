@@ -1,0 +1,145 @@
+name: Build & Publish on Itch
+
+on:
+  push:
+
+jobs:
+  build-webgl:
+    if: github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    name: Build WebGL
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          lfs: true
+
+      - name: Hydrate LFS and ensure clean tree
+        run: |
+          git lfs install --local
+          git config --local filter.lfs.required true
+          git lfs fetch --all
+          git lfs checkout
+          git reset --hard HEAD
+          git status --porcelain
+
+      - name: Get Unity Version
+        id: unity-version
+        run: |
+          UNITY_VERSION=$(grep "m_EditorVersion:" ProjectSettings/ProjectVersion.txt | sed 's/m_EditorVersion: //')
+          echo "version=$UNITY_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+
+      - name: Add swap space
+        uses: pierotofy/set-swap-space@master
+        with:
+          swap-size-gb: 12
+
+      - name: Restore Unity Library Cache
+        id: cache-restore
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            Library
+          key: Library-WebGL-${{ hashFiles('Packages/manifest.json', 'Packages/packages-lock.json') }}-${{ github.run_id }}
+          restore-keys: |
+            Library-WebGL-${{ hashFiles('Packages/manifest.json', 'Packages/packages-lock.json') }}-
+            Library-WebGL-
+
+      - name: Build
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          EMCC_FORCE_STDLIBS: 1
+        with:
+          unityVersion: ${{ steps.unity-version.outputs.version }}
+          targetPlatform: WebGL
+          projectPath: .
+          versioning: Semantic
+
+      - name: Use template for WebGL
+        env:
+          TITLE: ${{ vars.TITLE }}
+          COMPANY_NAME: ${{ vars.COMPANY_NAME }}
+          PRODUCT_NAME: ${{ vars.PRODUCT_NAME }}
+          PRODUCT_VERSION: ${{ vars.PRODUCT_VERSION }}
+        run: |
+          set -e
+          BUILD_PATH="build/WebGL/WebGL"
+
+          WIDTH=$(grep 'defaultScreenWidthWeb:' ProjectSettings/ProjectSettings.asset | sed 's/.*: //')
+          HEIGHT=$(grep 'defaultScreenHeightWeb:' ProjectSettings/ProjectSettings.asset | sed 's/.*: //')
+
+          sudo chown -R $USER:$USER "build/WebGL" || true
+          chmod -R u+w "build/WebGL" || true
+
+          cp webgl-template/index.html "$BUILD_PATH/index.html"
+          sed -i \
+            -e "s|{{TITLE}}|${TITLE}|g" \
+            -e "s|{{COMPANY_NAME}}|${COMPANY_NAME}|g" \
+            -e "s|{{PRODUCT_NAME}}|${PRODUCT_NAME}|g" \
+            -e "s|{{PRODUCT_VERSION}}|${PRODUCT_VERSION}|g" \
+            -e "s|{{WIDTH}}|${WIDTH}|g" \
+            -e "s|{{HEIGHT}}|${HEIGHT}|g" \
+            "$BUILD_PATH/index.html"
+
+          mv "$BUILD_PATH"/* "build/WebGL/" || true
+          mv "$BUILD_PATH"/.[^.]* "build/WebGL/" 2>/dev/null || true
+          rmdir "$BUILD_PATH" || true
+
+      - name: Save Unity Library Cache
+        if: ${{ always() }}
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            Library
+          key: ${{ steps.cache-restore.outputs.cache-primary-key }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WebGL
+          path: build/WebGL
+
+  publish-webgl:
+    needs: build-webgl
+    if: github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    name: Publish WebGL
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: WebGL
+          path: Builds
+
+      - name: Install butler
+        run: |
+          curl -L -o butler-linux-amd64.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
+          unzip butler-linux-amd64.zip -d butler_tmp
+          chmod +x butler_tmp/butler
+          sudo mv butler_tmp/butler /usr/local/bin/butler
+          butler -V
+
+      - name: Push to Itch.io
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        run: butler push Builds rustamismagilov/minigolf-prototype:web
+
+      - name: Check upload status
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        run: butler status rustamismagilov/minigolf-prototype:web
