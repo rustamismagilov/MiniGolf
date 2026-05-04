@@ -12,7 +12,7 @@ public class SpeedRamp : MonoBehaviour
         {
             Rigidbody ballRigidbody = other.gameObject.GetComponent<Rigidbody>();
 
-            Vector3 currentVelocity = ballRigidbody.velocity;
+            Vector3 currentVelocity = ballRigidbody.linearVelocity;
 
             if (currentVelocity.magnitude > 0.1f)
             {

@@ -68,8 +68,8 @@ public class BallController : MonoBehaviour
         }
 
 
-        rb.drag = drag;
-        rb.angularDrag = drag;
+        rb.linearDamping = drag;
+        rb.angularDamping = drag;
 
         powerSlider.minValue = 0f;
         powerSlider.maxValue = maxPower;
@@ -86,7 +86,7 @@ public class BallController : MonoBehaviour
     {
         UpdateShots();
 
-        if (rb.velocity.magnitude <= minimumSpeed && rb.angularVelocity.magnitude <= minimumSpeed)
+        if (rb.linearVelocity.magnitude <= minimumSpeed && rb.angularVelocity.magnitude <= minimumSpeed)
         {
             if (!canInteract) Debug.Log("Ball has come to rest");
             canInteract = true;
@@ -283,7 +283,7 @@ public class BallController : MonoBehaviour
         float elapsedTime = 0f;
 
         Debug.Log("Waiting for ball to stop moving...");
-        while ((rb.velocity.magnitude < startMovingSpeed && rb.angularVelocity.magnitude < startMovingSpeed) && elapsedTime < maxWaitTime)
+        while ((rb.linearVelocity.magnitude < startMovingSpeed && rb.angularVelocity.magnitude < startMovingSpeed) && elapsedTime < maxWaitTime)
         {
             yield return null;
             elapsedTime += Time.deltaTime;
@@ -298,7 +298,7 @@ public class BallController : MonoBehaviour
             Debug.Log("Ball has started Moving.");
             Debug.Log("Waiting for ball to stop moving...");
 
-            while (rb.velocity.magnitude > minimumSpeed || rb.angularVelocity.magnitude > minimumSpeed)
+            while (rb.linearVelocity.magnitude > minimumSpeed || rb.angularVelocity.magnitude > minimumSpeed)
             {
                 yield return null;
             }
@@ -311,7 +311,7 @@ public class BallController : MonoBehaviour
 
     public void ResetVelocity()
     {
-        rb.velocity = Vector3.zero;
+        rb.linearVelocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
     }
 

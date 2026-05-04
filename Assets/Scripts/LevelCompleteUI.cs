@@ -6,14 +6,12 @@ using UnityEngine.UI;
 public class LevelCompleteUI : MonoBehaviour
 {
     public GameObject levelComplete;
-    public Button continueButton;
 
-    LevelManager levelManager;
+    SceneController sceneController;
 
     void Start()
     {
-        levelManager = FindObjectOfType<LevelManager>();
-
+        sceneController = FindObjectOfType<SceneController>();
 
         levelComplete.SetActive(false);
     }
@@ -30,13 +28,13 @@ public class LevelCompleteUI : MonoBehaviour
 
         levelComplete.SetActive(false);
 
-        if (levelManager != null)
+        if (sceneController != null)
         {
-            levelManager.LoadNextLevel();
+            sceneController.LoadNextScene();
         }
         else
         {
-            Debug.Log("LevelManager not found");
+            Debug.Log("SceneController not found");
         }
     }
 }

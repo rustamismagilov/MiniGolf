@@ -24,7 +24,7 @@ public class LevelManager : MonoBehaviour
             levels[i].SetActive(i == currentLevelIndex);
         }
 
-        SetBallToStartPosition();
+        //SetBallToStartPosition();
     }
 
     public void LoadNextLevel()
@@ -40,7 +40,7 @@ public class LevelManager : MonoBehaviour
         {
             levels[currentLevelIndex].SetActive(true);
 
-            SetBallToStartPosition();
+            //SetBallToStartPosition();
 
             timerController.ResetTimer();
             timerController.StartTimer();
@@ -53,25 +53,25 @@ public class LevelManager : MonoBehaviour
         }
     }
 
-    void SetBallToStartPosition()
-    {
-        if (currentLevelIndex < levels.Length)
-        {
-            Transform startPoint = startPoints[currentLevelIndex];
-            if (startPoint != null)
-            {
-                Debug.Log("StartPoint found at position: " + startPoint.position);
-                ballController.transform.position = startPoint.position;
-                ballController.ResetVelocity();
-            }
-            else
-            {
-                Debug.LogWarning("Start Point not found in " + levels[currentLevelIndex].name);
-            }
-        }
-        else
-        {
-            Debug.Log("No more levels");
-        }
-    }
+    //void SetBallToStartPosition()
+    //{
+    //    if (currentLevelIndex < levels.Length)
+    //    {
+    //        Transform startPoint = startPoints[currentLevelIndex];
+    //        if (startPoint != null)
+    //        {
+    //            Debug.Log("StartPoint found at position: " + startPoint.position);
+    //            ballController.transform.position = startPoint.position;
+    //            ballController.ResetVelocity();
+    //        }
+    //        else
+    //        {
+    //            Debug.LogWarning("Start Point not found in " + levels[currentLevelIndex].name);
+    //        }
+    //    }
+    //    else
+    //    {
+    //        Debug.Log("No more levels");
+    //    }
+    //}
 }
